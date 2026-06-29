@@ -165,6 +165,10 @@ vim.g.compile_mode = {
 }
 ```
 
+## Custom Regexes
+
+If you're looking for custom regexes for a specific programming language/tool, take a look at the Custom Regexes category in the GitHub Discussions tab - someone may have posted the regexes you're looking for. If you have a useful regex that hasn't been posted, go ahead and post it for other people to use!
+
 ## Contributing
 
 Contributions are welcome in the form of GitHub issues and pull requests.
