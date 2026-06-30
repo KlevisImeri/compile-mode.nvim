@@ -44,7 +44,7 @@ return {
         -- input_word_completion = true,
 
         -- to add ANSI escape code support (requires baleia.nvim):
-        -- ansi_color_for_compilation = "render",
+        -- ansi_color = "render",
 
         -- to make `:Compile` replace special characters (e.g. `%`) in
         -- the command (and behave more like `:!`), add:
@@ -88,15 +88,14 @@ vim.g.compile_mode = {
     -- :h compile_mode.default_command
     default_command = "make -k ",
     -- Control how ANSI escape sequences are handled in compilation output.
-    -- "render": strip non-SGR CSI and OSC, render SGR colors via baleia.
-    -- "filter": strip all CSI and OSC sequences.
-    -- "passthrough": no processing (pass through raw).
-    -- :h compile-mode.ansi_color_for_compilation
-    ansi_color_for_compilation = "render",
-    -- Options to pass to baleia.setup() when ansi_color_for_compilation
-    -- is "render". Set to true for defaults.
-    -- :h compile_mode.baleia_setup
-    baleia_setup = false,
+    -- :h compile-mode.ansi_color
+    ansi_color = {
+        kind = "filter",
+        -- Options to pass to baleia.setup() when kind is "render".
+        -- Set to true for defaults, or a table of options.
+        -- :h compile_mode.baleia_setup
+        baleia_setup = false,
+    },
     -- Expand commands, like `:!` (e.g. `:Compile echo %`)
     -- :h compile_mode.bang_expansion
     bang_expansion = false,
@@ -169,19 +168,12 @@ vim.g.compile_mode = {
     -- Use a pseudo terminal for command execution.
     -- :h compile-mode.use_pseudo_terminal
     use_pseudo_terminal = false,
-    -- A table mapping OSC command numbers to handler functions.
-    -- Each handler receives data and returns a replacement string.
-    -- Return "" to strip, or return text to show in the buffer.
-    -- :h compile-mode.osc_handlers
-    osc_handlers = {
-       [0] = function(_) return "" end,   -- set window title and icon name
-       [1] = function(_) return "" end,   -- set icon name
-       [2] = function(_) return "" end,   -- set window title
-       [7] = function(_) return "" end,   -- set working directory
-       [8] = function(data)               -- hyperlink
-           return data:match(";%s*(.*)") or ""
-       end,
-       [52] = function(_) return "" end,  -- clipboard access
+    -- Control how OSC sequences are handled (hyperlinks, titles, etc.)
+    -- :h compile-mode.ansi_osc
+    ansi_osc = {
+        kind = "render",
+        -- Custom handlers override defaults for specific commands.
+        -- handlers = { ... }
     }
 }
 ```

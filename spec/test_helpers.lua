@@ -236,4 +236,9 @@ function M.assert_cursor_at_error(error_string)
 	assert.are.same(actual_row, line)
 end
 
+---@return table
+function M.get_default_config()
+	return require("compile-mode.config.internal")
+end
+
 return M

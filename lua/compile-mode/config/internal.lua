@@ -6,9 +6,9 @@ local log = require("compile-mode.log")
 local default_config = {
 	---@type string
 	default_command = "make -k ",
-	---@type "passthrough"|"filter"|"render"
-	ansi_color_for_compilation = "render",
-	---@type table | boolean
+	---@type CompileModeAnsiColor
+	ansi_color = { kind = "filter", baleia_setup = false },
+	---@type boolean|table
 	baleia_setup = false,
 	---@type boolean
 	bang_expansion = false,
@@ -56,27 +56,30 @@ local default_config = {
 	use_circular_error_navigation = false,
 	---@type boolean
 	use_pseudo_terminal = false,
-	---@type table<number, function>
-	osc_handlers = {
-		[0] = function(_)
-			return ""
-		end, -- set window title and icon name
-		[1] = function(_)
-			return ""
-		end, -- set icon name
-		[2] = function(_)
-			return ""
-		end, -- set window title
-		[7] = function(_)
-			return ""
-		end, -- set working directory
-		[8] = function(data) -- hyperlink
-			local uri = data:match(";%s*(.*)") or ""
-			return uri ~= "" and uri .. " " or ""
-		end,
-		[52] = function(_)
-			return ""
-		end, -- clipboard access
+	---@type CompileModeAnsiOsc
+	ansi_osc = {
+		kind = "render",
+		handlers = {
+			[0] = function(_)
+				return ""
+			end, -- set window title and icon name
+			[1] = function(_)
+				return ""
+			end, -- set icon name
+			[2] = function(_)
+				return ""
+			end, -- set window title
+			[7] = function(_)
+				return ""
+			end, -- set working directory
+			[8] = function(ctx) -- hyperlink
+				local uri = ctx.data:match(";%s*(.*)") or ""
+				return "", uri ~= "" and { link_open = { uri = uri } } or { link_close = true }
+			end,
+			[52] = function(_)
+				return ""
+			end, -- clipboard access
+		},
 	},
 }
 
@@ -90,6 +93,16 @@ local health_info = {
 }
 
 local config = vim.tbl_extend("force", health_info, default_config, user_config or {})
+
+-- Deprecation: top-level baleia_setup overrides ansi_color entirely
+if config.baleia_setup ~= nil and config.baleia_setup ~= false then
+	log.fmt_warn(
+		"'baleia_setup' at top level is deprecated, use 'ansi_color.baleia_setup' instead."
+			.. " It will be removed in v6."
+	)
+	config.ansi_color = { kind = "render", baleia_setup = config.baleia_setup }
+end
+config.baleia_setup = false
 config.error_regexp_table =
 	vim.tbl_extend("force", require("compile-mode.errors").error_regexp_table, config.error_regexp_table)
 config.directory_change_matchers = vim.list_extend({

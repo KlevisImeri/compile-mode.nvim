@@ -1,3 +1,7 @@
+---@class CompileModeAnsiColor
+---@field kind "passthrough"|"filter"|"render"
+---@field baleia_setup? boolean|table
+---
 ---@class CompileModeOpts
 ---
 ---The string to show in the compile prompt as a default.
@@ -8,30 +12,27 @@
 ---`passthrough`: no processing (pass through raw).
 ---`"filter"`: strip all CSI and OSC sequences.
 ---`"render"`: strip non-SGR CSI and OSC, render SGR colors via baleia.
----For more info, run `:h compile-mode.ansi_color_for_compilation`
----@field ansi_color_for_compilation? "passthrough"|"filter"|"render"
+---For more info, run `:h compile-mode.ansi_color`
+---@field ansi_color?             CompileModeAnsiColor
 ---
----Use `baleia` for parsing ANSI escape codes in the output.
+---DEPRECATED: use `ansi_color.baleia_setup` instead. Will be removed in v6.
 ---For more info, run `:h compile-mode.baleia_setup`
 ---@field baleia_setup?             boolean|table
 ---
----A table mapping OSC command numbers to handler functions.
----Each handler receives the data portion of the OSC sequence as a string.
----Supported command numbers:
----  0  - set window title and icon name
----  1  - set icon name
----  2  - set window title
----  7  - set working directory (vTE)
----  8  - create hyperlink
----  52 - clipboard access
----Each handler must return a replacement string that appears in the buffer in place of the
----OSC sequence. Return `""` to strip the sequence entirely. Default handlers return `""`
----(strip) except OSC 8 which returns the URI + trailing space.
----Examples:
----  Strip: `osc_handlers = { [2] = function(data) vim.opt.titlestring = data; return "" end }`
----  Show:  `osc_handlers = { [2] = function(data) return "[" .. data .. "]" end }`
----For more info, run `:h compile-mode.osc_handlers`
----@field osc_handlers?             table<number, function>
+---@class AnsiOscContext
+---@field bufnr integer  buffer being written to
+---@field data  string   data portion of the OSC sequence
+---
+---@class CompileModeAnsiOsc
+---@field kind "passthrough"|"filter"|"render"
+---@field handlers? table<number, fun(ctx: AnsiOscContext): string?, table?>
+---
+---Control how OSC (Operating System Command) sequences are handled.
+---`kind` chooses default handlers; `handlers` overrides or extends them.
+---Each handler receives a context table and returns optional replacement text
+---and an optional metadata table for side effects (e.g. URL extmarks).
+---For more info, run `:h compile-mode.ansi_osc`
+---@field ansi_osc?             CompileModeAnsiOsc
 ---
 ---Expand commands, like `:!` (e.g. `:Compile echo %`)
 ---For more info, run `:h compile-mode.bang_expansion`

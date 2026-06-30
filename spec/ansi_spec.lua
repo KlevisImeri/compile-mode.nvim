@@ -27,7 +27,7 @@ describe("ANSI escape sequence handling", function()
 	describe("filter mode", function()
 		before_each(function()
 			helpers.setup_tests({
-				ansi_color_for_compilation = "filter",
+				ansi_color = { kind = "filter" },
 			})
 		end)
 
@@ -62,13 +62,17 @@ describe("ANSI escape sequence handling", function()
 		it("strips line that is only escape sequences", function()
 			assert_output([[printf '\e[31m\e[0m\n']], { "" })
 		end)
+
+		it("strips cmake-style color codes, keeps visible text", function()
+			assert_output([[printf '[ \e[1;32mOK\e[0;39m ] [ \e[1;31mFAIL\e[0;39m ]\n']], { "[ OK ] [ FAIL ]" })
+		end)
 	end)
 end)
 
 describe("passthrough mode", function()
 	before_each(function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "passthrough",
+			ansi_color = { kind = "passthrough" },
 		})
 	end)
 
@@ -89,7 +93,7 @@ describe("partial sequence buffering", function()
 	local ansi
 
 	before_each(function()
-		helpers.setup_tests({ ansi_color_for_compilation = "filter" })
+		helpers.setup_tests({ ansi_color = { kind = "filter" } })
 		ansi = require("compile-mode.ansi")
 	end)
 	it("buffers incomplete CSI at end of chunk", function()
@@ -113,10 +117,7 @@ describe("partial sequence buffering", function()
 	end)
 
 	it("handles complete sequence followed by partial at end", function()
-		assert_buffer(
-			{ { "hello\27[1A\27[" }, { "31m" }, { "world" } },
-			{ "hello", "", "world" }
-		)
+		assert_buffer({ { "hello\27[1A\27[" }, { "31m" }, { "world" } }, { "hello", "", "world" })
 	end)
 
 	it("buffers incomplete OSC at end of chunk with ST terminator", function()
@@ -142,27 +143,27 @@ describe("partial sequence buffering", function()
 end)
 
 describe("OSC handlers", function()
-	it("default handlers are no-ops", function()
+	it("default handlers strip sequences from output", function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
+			ansi_color = { kind = "filter" },
 		})
 
-		assert_output(
-			[[printf '\e]2;mytitle\a\e]7;file:///tmp\a\e]0;iconname\ahello\n']],
-			{ "hello" }
-		)
+		assert_output([[printf '\e]2;mytitle\a\e]7;file:///tmp\a\e]0;iconname\ahello\n']], { "hello" })
 	end)
 
 	it("custom handler for command 2 receives title data", function()
 		local received_data = nil
 
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
-			osc_handlers = {
-				[2] = function(data)
-					received_data = data
-					return ""
-				end,
+			ansi_color = { kind = "filter" },
+			ansi_osc = {
+				kind = "filter",
+				handlers = {
+					[2] = function(ctx)
+						received_data = ctx.data
+						return ""
+					end,
+				},
 			},
 		})
 
@@ -174,12 +175,15 @@ describe("OSC handlers", function()
 		local received_data = nil
 
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
-			osc_handlers = {
-				[7] = function(data)
-					received_data = data
-					return ""
-				end,
+			ansi_color = { kind = "filter" },
+			ansi_osc = {
+				kind = "filter",
+				handlers = {
+					[7] = function(ctx)
+						received_data = ctx.data
+						return ""
+					end,
+				},
 			},
 		})
 
@@ -187,16 +191,19 @@ describe("OSC handlers", function()
 		assert.are.same("file:///home/user", received_data)
 	end)
 
-	it("unknown OSC command is stripped with no handler call", function()
+	it("custom handler for unknown OSC command 99 is called", function()
 		local handler_called = false
 
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
-			osc_handlers = {
-				[99] = function(_)
-					handler_called = true
-					return ""
-				end,
+			ansi_color = { kind = "filter" },
+			ansi_osc = {
+				kind = "filter",
+				handlers = {
+					[99] = function(_)
+						handler_called = true
+						return ""
+					end,
+				},
 			},
 		})
 
@@ -204,47 +211,41 @@ describe("OSC handlers", function()
 		assert.is_true(handler_called)
 	end)
 
-	it("OSC 8 hyperlink with params renders URI visible", function()
+	it("OSC 8 hyperlink with params strips escape from output", function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
 		})
 
-		assert_output(
-			[[printf '\e]8;id=123;https://example.com\e\\click here\e]8;;\e\\\n']],
-			{ "https://example.com click here" }
-		)
+		assert_output([[printf '\e]8;id=123;https://example.com\e\\click here\e]8;;\e\\\n']], { "click here" })
 	end)
 
-	it("OSC 8 hyperlink with empty params renders URI visible", function()
+	it("OSC 8 hyperlink with empty params strips escape from output", function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
 		})
 
-		assert_output(
-			[[printf '\e]8;;https://example.com\e\\click here\e]8;;\e\\\n']],
-			{ "https://example.com click here" }
-		)
+		assert_output([[printf '\e]8;;https://example.com\e\\click here\e]8;;\e\\\n']], { "click here" })
 	end)
 
-	it("OSC 8 hyperlink with URI containing semicolons renders full URI", function()
+	it("OSC 8 hyperlink with URI containing semicolons strips escape from output", function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
 		})
 
-		assert_output(
-			[[printf '\e]8;;https://example.com/path?a=1;b=2\e\\link\e]8;;\e\\\n']],
-			{ "https://example.com/path?a=1;b=2 link" }
-		)
+		assert_output([[printf '\e]8;;https://example.com/path?a=1;b=2\e\\link\e]8;;\e\\\n']], { "link" })
 	end)
 
 	it("handler return value replaces the OSC sequence in buffer", function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
-			osc_handlers = {
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "filter", handlers = {
 				[2] = function(_)
 					return "[TITLE]"
 				end,
-			},
+			} },
 		})
 
 		assert_output([[printf 'hello\e]2;mytitle\aworld\n']], { "hello[TITLE]world" })
@@ -252,12 +253,12 @@ describe("OSC handlers", function()
 
 	it("handler returning empty string strips the sequence entirely", function()
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
-			osc_handlers = {
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "filter", handlers = {
 				[2] = function(_)
 					return ""
 				end,
-			},
+			} },
 		})
 
 		assert_output([[printf 'hello\e]2;mytitle\aworld\n']], { "helloworld" })
@@ -267,17 +268,82 @@ describe("OSC handlers", function()
 		local fired = false
 
 		helpers.setup_tests({
-			ansi_color_for_compilation = "filter",
-			osc_handlers = {
-				[2] = function(_)
-					fired = true
-					return ""
-				end,
+			ansi_color = { kind = "filter" },
+			ansi_osc = {
+				kind = "filter",
+				handlers = {
+					[2] = function(_)
+						fired = true
+						return ""
+					end,
+				},
 			},
 		})
 
 		assert_output([[printf '\e]2;title\ahello\n']], { "hello" })
 		assert.is_true(fired)
+	end)
+
+	it("OSC 2 sets titlestring in render mode", function()
+		helpers.setup_tests({
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
+		})
+
+		assert_output([[printf '\e]2;My Title\ahello\n']], { "hello" })
+		assert.are.same("My Title", vim.opt.titlestring:get())
+	end)
+
+	it("OSC 0 sets titlestring and iconstring in render mode", function()
+		helpers.setup_tests({
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
+		})
+
+		assert_output([[printf '\e]0;My Icon Title\ahello\n']], { "hello" })
+		assert.are.same("My Icon Title", vim.opt.titlestring:get())
+		assert.are.same("My Icon Title", vim.opt.iconstring:get())
+	end)
+
+	it("OSC 1 sets iconstring in render mode", function()
+		helpers.setup_tests({
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
+		})
+
+		assert_output([[printf '\e]1;My Icon\ahello\n']], { "hello" })
+		assert.are.same("My Icon", vim.opt.iconstring:get())
+	end)
+
+	it("OSC 9 fires vim.notify in render mode", function()
+		local captured = {}
+		local orig = vim.notify
+		---@diagnostic disable-next-line: duplicate-set-field
+		vim.notify = function(msg, level)
+			captured.msg = msg
+			captured.level = level
+		end
+
+		helpers.setup_tests({
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "render" },
+		})
+
+		assert_output([[printf '\e]9;Build complete\ahello\n']], { "hello" })
+
+		assert.equals("Build complete", captured.msg)
+		assert.equals(vim.log.levels.INFO, captured.level)
+
+		vim.notify = orig
+	end)
+
+	it("ansi_osc passthrough leaves OSC sequences intact", function()
+		helpers.setup_tests({
+			ansi_color = { kind = "filter" },
+			ansi_osc = { kind = "passthrough" },
+		})
+
+		assert_output([[printf 'hello\e]2;title\aworld\n']], { "hello\27]2;title\7world" })
 	end)
 end)
 
@@ -303,7 +369,7 @@ describe("fallback behavior", function()
 		}
 
 		helpers.setup_tests({
-			ansi_color_for_compilation = "render",
+			ansi_color = { kind = "render" },
 		})
 
 		local cmd = [[printf '\e[31mhello\e[0m\e]2;title\aworld\n']]
@@ -321,7 +387,7 @@ describe("partial buffering integration", function()
 	local ansi
 
 	before_each(function()
-		helpers.setup_tests({ ansi_color_for_compilation = "filter" })
+		helpers.setup_tests({ ansi_color = { kind = "filter" } })
 		ansi = require("compile-mode.ansi")
 	end)
 
@@ -343,7 +409,7 @@ describe("pattern correctness", function()
 	local ansi
 
 	before_each(function()
-		helpers.setup_tests({ ansi_color_for_compilation = "filter" })
+		helpers.setup_tests({ ansi_color = { kind = "filter" } })
 		ansi = require("compile-mode.ansi")
 	end)
 
@@ -402,10 +468,9 @@ describe("render mode with mock baleia", function()
 	local captured_lines
 
 	local function assert_render(input, expected)
-		helpers.setup_tests({ ansi_color_for_compilation = "render" })
+		helpers.setup_tests({ ansi_color = { kind = "render" } })
 		local ansi = require("compile-mode.ansi")
 		local bufnr = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "" })
 
 		ansi.buf_set_lines(bufnr, 0, -1, { input })
 
@@ -415,6 +480,7 @@ describe("render mode with mock baleia", function()
 
 	before_each(function()
 		captured_lines = {}
+		local ansi_mod = require("compile-mode.ansi")
 		package.loaded["baleia"] = {
 			setup = function(opts)
 				return {
@@ -422,6 +488,10 @@ describe("render mode with mock baleia", function()
 						for _, l in ipairs(lines) do
 							table.insert(captured_lines, l)
 						end
+						local cleaned = vim.tbl_map(function(l)
+							return ansi_mod._strip_sgr(l)
+						end, lines)
+						vim.api.nvim_buf_set_lines(bufnr, start, end_, strict, cleaned)
 					end,
 				}
 			end,
@@ -444,3 +514,343 @@ describe("render mode with mock baleia", function()
 		assert_render("\27]2;title\7\27[32mGREEN\27[0m", { "\27[32mGREEN\27[0m" })
 	end)
 end)
+
+describe("OSC 8 hyperlink extmarks", function()
+	local ansi
+	local ns_id
+
+	before_each(function()
+		helpers.setup_tests({ ansi_color = { kind = "filter" }, ansi_osc = { kind = "render" } })
+		ansi = require("compile-mode.ansi")
+		ns_id = ansi.ns_id
+	end)
+
+	it("places extmark with URL on linked text", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, { "\27]8;;https://example.com\27\\click here\27]8;;\27\\" })
+
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		assert.are.same({ "click here" }, lines)
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(1, #extmarks)
+
+		local mark = extmarks[1]
+		assert.equals("https://example.com", mark[4].url)
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+
+	it("places extmark across multiple linked regions", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, {
+			"\27]8;;https://a.com\27\\link a\27]8;;\27\\plain \27]8;;https://b.com\27\\link b\27]8;;\27\\",
+		})
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(2, #extmarks)
+
+		local urls = vim.tbl_map(function(m)
+			return m[4].url
+		end, extmarks)
+		assert.are.same({ "https://a.com", "https://b.com" }, urls)
+
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+
+	it("handles link across multiple lines in one chunk", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, {
+			"before",
+			"mid\27]8;;https://multi.com\27\\start",
+			"end\27]8;;\27\\after",
+		})
+
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		assert.are.same({ "before", "midstart", "endafter" }, lines)
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(1, #extmarks)
+
+		local m = extmarks[1]
+		assert.equals("https://multi.com", m[4].url)
+
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+
+	it("handles link close without prior open gracefully", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, { "before\27]8;;\27\\after" })
+
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		assert.are.same({ "beforeafter" }, lines)
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(0, #extmarks)
+
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+
+	it("second link open replaces first link gracefully", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, {
+			"\27]8;;https://first.com\27\\first\27]8;;https://second.com\27\\second\27]8;;\27\\",
+		})
+
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		assert.are.same({ "firstsecond" }, lines)
+
+		-- Only the second link should have an extmark
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(1, #extmarks)
+		assert.equals("https://second.com", extmarks[1][4].url)
+
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+
+	it("places extmarks with negative start in filter mode", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "make -k ", "" })
+
+		ansi.buf_set_lines(bufnr, -2, -1, { "\27]8;;https://example.com\27\\click here\27]8;;\27\\" })
+
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		assert.are.same({ "make -k ", "click here" }, lines)
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(1, #extmarks)
+		assert.equals("https://example.com", extmarks[1][4].url)
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+
+	it("places extmark at correct column with SGR in render mode", function()
+		helpers.setup_tests({ ansi_color = { kind = "render" }, ansi_osc = { kind = "render" } })
+		local ansi = require("compile-mode.ansi")
+		package.loaded["baleia"] = {
+			setup = function()
+				return {
+					buf_set_lines = function(bufnr, start, end_, strict, lines)
+						local cleaned = vim.tbl_map(function(l)
+							return ansi._strip_sgr(l)
+						end, lines)
+						vim.api.nvim_buf_set_lines(bufnr, start, end_, strict, cleaned)
+					end,
+				}
+			end,
+		}
+		package.loaded["compile-mode.ansi"] = nil
+		ansi = require("compile-mode.ansi")
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, { "\27[32mGREEN \27]8;;https://example.com\27\\link\27]8;;\27\\" })
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ansi.ns_id, 0, -1, { details = true })
+		assert.equals(1, #extmarks)
+
+		local m = extmarks[1]
+		assert.equals(6, m[3])
+		assert.equals(10, m[4].end_col)
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+		package.loaded["baleia"] = nil
+	end)
+
+	it("places extmark at correct column with SGR in filter mode", function()
+		local bufnr = vim.api.nvim_create_buf(false, true)
+
+		ansi.buf_set_lines(bufnr, 0, -1, { "\27[32mGREEN \27]8;;https://example.com\27\\link\27]8;;\27\\" })
+
+		local extmarks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, { details = true })
+		assert.equals(1, #extmarks)
+
+		local m = extmarks[1]
+		assert.equals(6, m[3])
+		assert.equals(10, m[4].end_col)
+		vim.api.nvim_buf_delete(bufnr, { force = true })
+	end)
+end)
+
+describe("ansi_color config validation", function()
+	local check
+
+	before_each(function()
+		helpers.setup_tests({})
+		package.loaded["compile-mode.config.check"] = nil
+		check = require("compile-mode.config.check")
+	end)
+
+	local function validate(ac_override)
+		local cfg = helpers.get_default_config()
+		cfg.ansi_color = ac_override
+		return check.validate(cfg)
+	end
+
+	it("accepts valid kind: filter", function()
+		assert.is_true(validate({ kind = "filter" }))
+	end)
+
+	it("accepts valid kind: render", function()
+		assert.is_true(validate({ kind = "render" }))
+	end)
+
+	it("accepts valid kind: passthrough", function()
+		assert.is_true(validate({ kind = "passthrough" }))
+	end)
+
+	it("accepts baleia_setup as true", function()
+		assert.is_true(validate({ kind = "render", baleia_setup = true }))
+	end)
+
+	it("accepts baleia_setup as table", function()
+		assert.is_true(validate({ kind = "render", baleia_setup = { colors = {} } }))
+	end)
+
+	it("accepts baleia_setup as false", function()
+		assert.is_true(validate({ kind = "filter", baleia_setup = false }))
+	end)
+
+	it("rejects flat string value", function()
+		local cfg = helpers.get_default_config()
+		cfg.ansi_color = "filter"
+		assert.is_false(check.validate(cfg))
+	end)
+
+	it("rejects table with invalid kind", function()
+		assert.is_false(validate({ kind = "invalid" }))
+	end)
+
+	it("rejects table with missing kind", function()
+		assert.is_false(validate({}))
+	end)
+
+	it("rejects wrong type for ansi_color", function()
+		local cfg = helpers.get_default_config()
+		cfg.ansi_color = 123
+		assert.is_false(check.validate(cfg))
+	end)
+
+	it("rejects nil kind", function()
+		assert.is_false(validate({ kind = nil }))
+	end)
+end)
+
+describe("baleia_setup deprecation", function()
+	local function resolved_config()
+		package.loaded["compile-mode.config.internal"] = nil
+		return require("compile-mode.config.internal")
+	end
+
+	it("migrates top-level baleia_setup = true to render", function()
+		helpers.setup_tests({ baleia_setup = true })
+		local cfg = resolved_config()
+		assert.are.same({ kind = "render", baleia_setup = true }, cfg.ansi_color)
+	end)
+
+	it("migrates top-level baleia_setup = table to render", function()
+		helpers.setup_tests({ baleia_setup = { colors = {} } })
+		local cfg = resolved_config()
+		assert.are.same({ kind = "render", baleia_setup = { colors = {} } }, cfg.ansi_color)
+	end)
+
+	it("does not migrate baleia_setup = false", function()
+		helpers.setup_tests({ baleia_setup = false })
+		local cfg = resolved_config()
+		assert.are.same({ kind = "filter", baleia_setup = false }, cfg.ansi_color)
+	end)
+
+	it("keeps default ansi_color when baleia_setup is not set", function()
+		helpers.setup_tests({})
+		local cfg = resolved_config()
+		assert.are.same({ kind = "filter", baleia_setup = false }, cfg.ansi_color)
+	end)
+
+	it("top-level baleia_setup overrides explicit ansi_color config", function()
+		helpers.setup_tests({
+			ansi_color = { kind = "filter", baleia_setup = false },
+			baleia_setup = { colors = {} },
+		})
+		local cfg = resolved_config()
+		assert.are.same({ kind = "render", baleia_setup = { colors = {} } }, cfg.ansi_color)
+	end)
+end)
+
+describe("ansi_osc config validation", function()
+	local check
+
+	before_each(function()
+		helpers.setup_tests({})
+		package.loaded["compile-mode.config.check"] = nil
+		check = require("compile-mode.config.check")
+	end)
+
+	local function validate(osc_override)
+		local cfg = helpers.get_default_config()
+		cfg.ansi_osc = osc_override
+		return check.validate(cfg)
+	end
+
+	it("accepts valid kind: filter", function()
+		assert.is_true(validate({ kind = "filter" }))
+	end)
+
+	it("accepts valid kind: render", function()
+		assert.is_true(validate({ kind = "render" }))
+	end)
+
+	it("accepts valid kind: passthrough", function()
+		assert.is_true(validate({ kind = "passthrough" }))
+	end)
+
+	it("accepts handlers alongside kind", function()
+		assert.is_true(validate({ kind = "filter", handlers = {
+			[2] = function(_)
+				return ""
+			end,
+		} }))
+	end)
+
+	it("rejects flat string value", function()
+		local cfg = helpers.get_default_config()
+		cfg.ansi_osc = "filter"
+		assert.is_false(check.validate(cfg))
+	end)
+
+	it("rejects table with invalid kind", function()
+		assert.is_false(validate({ kind = "invalid" }))
+	end)
+
+	it("rejects table with missing kind", function()
+		assert.is_false(validate({}))
+	end)
+
+	it("rejects wrong type for ansi_osc", function()
+		local cfg = helpers.get_default_config()
+		cfg.ansi_osc = 123
+		assert.is_false(check.validate(cfg))
+	end)
+
+	it("rejects nil kind", function()
+		assert.is_false(validate({ kind = nil }))
+	end)
+end)
+
+-- Run these commands inside Neovim to test interactively:
+-- SGR colors: OK=green, FAIL=red
+-- Compile printf '\\033[1;32mOK\\033[0m \\033[1;31mFAIL\\033[0m'
+-- OSC 8: clickable hyperlink
+-- Compile printf '\\033]8;;https://example.com\\033\\\\click here\\033]8;;\\033\\\\'
+-- OSC 0: sets titlestring + iconstring
+-- Compile printf '\\033]0;My Window Title\\033\\\\'
+--   Check: :echo &titlestring → "My Window Title", :echo &iconstring → "My Window Title"
+-- OSC 1: sets iconstring
+-- Compile printf '\\033]1;My Icon\\033\\\\'
+--   Check: :echo &iconstring → "My Icon"
+-- OSC 2: sets titlestring
+-- Compile printf '\\033]2;My Title\\033\\\\'
+--   Check: :echo &titlestring → "My Title"
+-- OSC 9: fires vim.notify
+-- Compile printf '\\033]9;Build done\\033\\\\'
+--   Check: :messages → "Build done"
