@@ -44,7 +44,10 @@ return {
         -- input_word_completion = true,
 
         -- to add ANSI escape code support (requires baleia.nvim):
-        -- ansi_color = "render",
+        -- ansi_color = { kind = "render" },
+
+        -- to enable OSC sequence handling (titles, hyperlinks, notifications):
+        -- ansi_osc = { kind = "render" },
 
         -- to make `:Compile` replace special characters (e.g. `%`) in
         -- the command (and behave more like `:!`), add:
@@ -85,7 +88,7 @@ vim.g.compile_mode = {
     --     return "make -k "
     --   end
     -- end,
-    -- :h compile_mode.default_command
+    -- :h compile-mode.default_command
     default_command = "make -k ",
     -- Control how ANSI escape sequences are handled in compilation output.
     -- :h compile-mode.ansi_color
@@ -93,11 +96,11 @@ vim.g.compile_mode = {
         kind = "filter",
         -- Options to pass to baleia.setup() when kind is "render".
         -- Set to true for defaults, or a table of options.
-        -- :h compile_mode.baleia_setup
+        -- :h compile-mode.baleia_setup
         baleia_setup = false,
     },
     -- Expand commands, like `:!` (e.g. `:Compile echo %`)
-    -- :h compile_mode.bang_expansion
+    -- :h compile-mode.bang_expansion
     bang_expansion = false,
     -- Configure additional entering/leaving directory regexes.
     -- :h compile-mode.directory_change_matchers
@@ -172,8 +175,32 @@ vim.g.compile_mode = {
     -- :h compile-mode.ansi_osc
     ansi_osc = {
         kind = "render",
-        -- Custom handlers override defaults for specific commands.
-        -- handlers = { ... }
+        handlers = {
+            [0] = function(ctx)
+                vim.opt.titlestring = ctx.data
+                vim.opt.iconstring = ctx.data
+                return ""
+            end,
+            [1] = function(ctx)
+                vim.opt.iconstring = ctx.data
+                return ""
+            end,
+            [2] = function(ctx)
+                vim.opt.titlestring = ctx.data
+                return ""
+            end,
+            [8] = function(ctx)
+                local uri = ctx.data:match(";%s*(.*)")
+                if uri and uri ~= "" then
+                    return "", { link_open = { uri = uri } }
+                end
+                return "", { link_close = true }
+            end,
+            [9] = function(ctx)
+                vim.notify(ctx.data, vim.log.levels.INFO)
+                return ""
+            end,
+        },
     }
 }
 ```

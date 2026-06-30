@@ -59,27 +59,6 @@ local default_config = {
 	---@type CompileModeAnsiOsc
 	ansi_osc = {
 		kind = "render",
-		handlers = {
-			[0] = function(_)
-				return ""
-			end, -- set window title and icon name
-			[1] = function(_)
-				return ""
-			end, -- set icon name
-			[2] = function(_)
-				return ""
-			end, -- set window title
-			[7] = function(_)
-				return ""
-			end, -- set working directory
-			[8] = function(ctx) -- hyperlink
-				local uri = ctx.data:match(";%s*(.*)") or ""
-				return "", uri ~= "" and { link_open = { uri = uri } } or { link_close = true }
-			end,
-			[52] = function(_)
-				return ""
-			end, -- clipboard access
-		},
 	},
 }
 
