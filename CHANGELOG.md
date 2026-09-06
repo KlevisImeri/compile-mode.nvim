@@ -8,6 +8,17 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ## [Unreleased]
 
+## [5.15.0] - 2026-08-16
+
+### Added
+
+- The `max_lines` option - by [@RupenderSinghRathore](https://github.com/RupenderSinghRathore)
+
+### Fixed
+
+- Properly reuse a window for an error locus with a different previous window
+- Error occurring when NUL bytes are output by the compilation command - by [@jiura](https://github.com/jiura)
+
 ## [5.14.0] - 2026-03-31
 
 ### Added
@@ -570,6 +581,7 @@ Also includes several documentation changes.
     API functions
 
 [unreleased]: https://github.com/ej-shafran/compile-mode.nvim/compare/latest...main
+[5.15.0]: https://github.com/ej-shafran/compile-mode.nvim/compare/v5.14.0...v5.15.0
 [5.14.0]: https://github.com/ej-shafran/compile-mode.nvim/compare/v5.13.2...v5.14.0
 [5.13.2]: https://github.com/ej-shafran/compile-mode.nvim/compare/v5.13.1...v5.13.2
 [5.13.1]: https://github.com/ej-shafran/compile-mode.nvim/compare/v5.13.0...v5.13.1

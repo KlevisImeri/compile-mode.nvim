@@ -143,6 +143,9 @@ vim.g.compile_mode = {
     -- at the top of the compilation buffer
     -- :h compile-mode.time_format
     time_format = "%a %b %e %H:%M:%S",
+    -- Maximum number of lines allowed in the compilation buffer.
+    -- :h compile-mode.max_lines
+    max_lines = nil,
     -- List of regexes to hide from the output.
     -- :h compile-mode.hidden_output
     hidden_output = {},
@@ -184,6 +187,10 @@ vim.g.compile_mode = {
     }
 }
 ```
+
+## Custom Regexes
+
+If you're looking for custom regexes for a specific programming language/tool, take a look at the Custom Regexes category in the GitHub Discussions tab - someone may have posted the regexes you're looking for. If you have a useful regex that hasn't been posted, go ahead and post it for other people to use!
 
 ## Contributing
 

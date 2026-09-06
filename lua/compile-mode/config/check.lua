@@ -189,6 +189,13 @@ function check.validate(cfg)
 		ask_to_interrupt = { cfg.ask_to_interrupt, "boolean" },
 		buffer_name = { cfg.buffer_name, "string" },
 		time_format = { cfg.time_format, "string" },
+		max_lines = {
+			cfg.max_lines,
+			function(value)
+				return value == nil or (type(value) == "number" and value > 0 and value % 1 == 0)
+			end,
+			"positive integer",
+		},
 		hidden_output = validate_string_list(cfg.hidden_output, true),
 		environment = { cfg.environment, "table", true },
 		clear_environment = { cfg.clear_environment, "boolean" },
@@ -215,6 +222,7 @@ function check.unrecognized_keys(tbl, default_tbl)
 		"hidden_output",
 		"baleia_setup",
 		"ansi_osc",
+		"max_lines",
 	}
 
 	local keys = {}
