@@ -162,9 +162,11 @@ function check.validate(cfg)
 		ansi_color = {
 			cfg.ansi_color,
 			function(v)
-				return type(v) == "table" and vim.tbl_contains({ "passthrough", "filter", "render" }, v.kind)
+				return type(v) == "table"
+					and vim.tbl_contains({ "passthrough", "filter", "render" }, v.kind)
+					and (v.baleia_options == nil or type(v.baleia_options) == "table")
 			end,
-			"table with kind field one of 'passthrough', 'filter', 'render'",
+			"table with kind field one of 'passthrough', 'filter', 'render' and optional table baleia_options",
 		},
 		ansi_osc = {
 			cfg.ansi_osc,

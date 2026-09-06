@@ -700,16 +700,16 @@ describe("ansi_color config validation", function()
 		assert.is_true(validate({ kind = "passthrough" }))
 	end)
 
-	it("accepts baleia_setup as true", function()
-		assert.is_true(validate({ kind = "render", baleia_setup = true }))
+	it("accepts baleia_options as table", function()
+		assert.is_true(validate({ kind = "render", baleia_options = { colors = {} } }))
 	end)
 
-	it("accepts baleia_setup as table", function()
-		assert.is_true(validate({ kind = "render", baleia_setup = { colors = {} } }))
+	it("accepts empty baleia_options", function()
+		assert.is_true(validate({ kind = "render", baleia_options = {} }))
 	end)
 
-	it("accepts baleia_setup as false", function()
-		assert.is_true(validate({ kind = "filter", baleia_setup = false }))
+	it("rejects non-table baleia_options", function()
+		assert.is_false(validate({ kind = "render", baleia_options = true }))
 	end)
 
 	it("rejects flat string value", function()
@@ -746,34 +746,34 @@ describe("baleia_setup deprecation", function()
 	it("migrates top-level baleia_setup = true to render", function()
 		helpers.setup_tests({ baleia_setup = true })
 		local cfg = resolved_config()
-		assert.are.same({ kind = "render", baleia_setup = true }, cfg.ansi_color)
+		assert.are.same({ kind = "render", baleia_options = {} }, cfg.ansi_color)
 	end)
 
 	it("migrates top-level baleia_setup = table to render", function()
 		helpers.setup_tests({ baleia_setup = { colors = {} } })
 		local cfg = resolved_config()
-		assert.are.same({ kind = "render", baleia_setup = { colors = {} } }, cfg.ansi_color)
+		assert.are.same({ kind = "render", baleia_options = { colors = {} } }, cfg.ansi_color)
 	end)
 
 	it("does not migrate baleia_setup = false", function()
 		helpers.setup_tests({ baleia_setup = false })
 		local cfg = resolved_config()
-		assert.are.same({ kind = "filter", baleia_setup = false }, cfg.ansi_color)
+		assert.are.same({ kind = "filter", baleia_options = {} }, cfg.ansi_color)
 	end)
 
 	it("keeps default ansi_color when baleia_setup is not set", function()
 		helpers.setup_tests({})
 		local cfg = resolved_config()
-		assert.are.same({ kind = "filter", baleia_setup = false }, cfg.ansi_color)
+		assert.are.same({ kind = "filter", baleia_options = {} }, cfg.ansi_color)
 	end)
 
 	it("top-level baleia_setup overrides explicit ansi_color config", function()
 		helpers.setup_tests({
-			ansi_color = { kind = "filter", baleia_setup = false },
+			ansi_color = { kind = "filter", baleia_options = {} },
 			baleia_setup = { colors = {} },
 		})
 		local cfg = resolved_config()
-		assert.are.same({ kind = "render", baleia_setup = { colors = {} } }, cfg.ansi_color)
+		assert.are.same({ kind = "render", baleia_options = { colors = {} } }, cfg.ansi_color)
 	end)
 end)
 

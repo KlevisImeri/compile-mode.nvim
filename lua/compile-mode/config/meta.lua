@@ -1,6 +1,6 @@
 ---@class CompileModeAnsiColor
 ---@field kind "passthrough"|"filter"|"render"
----@field baleia_setup? boolean|table
+---@field baleia_options? table
 ---
 ---@class CompileModeAnsiOscContext
 ---@field bufnr integer  buffer being written to
@@ -23,7 +23,7 @@
 ---For more info, run `:h compile-mode.ansi_color`
 ---@field ansi_color?             CompileModeAnsiColor
 ---
----DEPRECATED: use `ansi_color.baleia_setup` instead. Will be removed in v6.
+---DEPRECATED: use `ansi_color.baleia_options` instead. Will be removed in v6.
 ---For more info, run `:h compile-mode.baleia_setup`
 ---@field baleia_setup?             boolean|table
 ---

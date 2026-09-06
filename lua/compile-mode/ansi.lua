@@ -71,13 +71,9 @@ local function setup(config)
 	local ansi_cfg = config.ansi_color
 	mode = ansi_cfg.kind
 	if mode == "render" then
-		local baleia_setup = ansi_cfg.baleia_setup
-		if baleia_setup == nil or baleia_setup == false then
-			baleia_setup = true
-		end
 		local ok, baleia_mod = pcall(require, "baleia")
 		if ok then
-			baleia_instance = baleia_mod.setup(baleia_setup == true and {} or baleia_setup)
+			baleia_instance = baleia_mod.setup(ansi_cfg.baleia_options or {})
 		else
 			log.warn("ansi_color.kind is 'render' but baleia.nvim could not be loaded. Falling back to 'filter'.")
 			mode = "filter"

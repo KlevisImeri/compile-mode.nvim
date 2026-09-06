@@ -44,8 +44,8 @@ return {
         -- input_word_completion = true,
 
         -- to add ANSI escape code support (requires baleia.nvim):
-        -- `baleia_setup = {}` uses baleia's defaults, or pass a table to customize:
-        -- ansi_color = { kind = "render", baleia_setup = {} },
+        -- `baleia_options = {}` uses baleia's defaults, or pass a table to customize:
+        -- ansi_color = { kind = "render", baleia_options = {} },
 
         -- to enable OSC sequence handling (titles, hyperlinks, notifications):
         -- built-in handlers for OSC 0/1/2/8/9 are injected when `kind` is "render";
@@ -99,8 +99,8 @@ vim.g.compile_mode = {
         kind = "filter",
         -- Baleia options to pass to baleia.setup() when kind is "render".
         -- Use `{}` for baleia's defaults, or a table of baleia options.
-        -- :h compile-mode.baleia_setup
-        baleia_setup = false,
+        -- :h compile-mode.ansi_color
+        baleia_options = {},
     },
     -- Expand commands, like `:!` (e.g. `:Compile echo %`)
     -- :h compile-mode.bang_expansion

@@ -7,7 +7,7 @@ local default_config = {
 	---@type string
 	default_command = "make -k ",
 	---@type CompileModeAnsiColor
-	ansi_color = { kind = "filter", baleia_setup = false },
+	ansi_color = { kind = "filter", baleia_options = {} },
 	---@type boolean|table
 	baleia_setup = false,
 	---@type boolean
@@ -77,10 +77,13 @@ local config = vim.tbl_extend("force", health_info, default_config, user_config 
 -- Deprecation: top-level baleia_setup overrides ansi_color entirely
 if config.baleia_setup ~= nil and config.baleia_setup ~= false then
 	log.fmt_warn(
-		"'baleia_setup' at top level is deprecated, use 'ansi_color.baleia_setup' instead."
+		"'baleia_setup' at top level is deprecated, use 'ansi_color.baleia_options' instead."
 			.. " It will be removed in v6."
 	)
-	config.ansi_color = { kind = "render", baleia_setup = config.baleia_setup }
+	config.ansi_color = {
+		kind = "render",
+		baleia_options = config.baleia_setup == true and {} or config.baleia_setup,
+	}
 end
 config.baleia_setup = false
 config.error_regexp_table =
