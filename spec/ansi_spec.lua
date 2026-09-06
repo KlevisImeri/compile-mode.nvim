@@ -1,4 +1,3 @@
--- /home/klevis/Projects/compile-mode.nvim/spec/ansi_spec.lua
 local helpers = require("spec.test_helpers")
 local assert = require("luassert")
 
