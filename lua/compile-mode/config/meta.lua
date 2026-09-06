@@ -2,6 +2,14 @@
 ---@field kind "passthrough"|"filter"|"render"
 ---@field baleia_setup? boolean|table
 ---
+---@class CompileModeAnsiOscContext
+---@field bufnr integer  buffer being written to
+---@field data  string   data portion of the OSC sequence
+---
+---@class CompileModeAnsiOsc
+---@field kind "passthrough"|"filter"|"render"
+---@field handlers? table<number, fun(ctx: CompileModeAnsiOscContext): string?, table?>
+---
 ---@class CompileModeOpts
 ---
 ---The string to show in the compile prompt as a default.
@@ -18,14 +26,6 @@
 ---DEPRECATED: use `ansi_color.baleia_setup` instead. Will be removed in v6.
 ---For more info, run `:h compile-mode.baleia_setup`
 ---@field baleia_setup?             boolean|table
----
----@class AnsiOscContext
----@field bufnr integer  buffer being written to
----@field data  string   data portion of the OSC sequence
----
----@class CompileModeAnsiOsc
----@field kind "passthrough"|"filter"|"render"
----@field handlers? table<number, fun(ctx: AnsiOscContext): string?, table?>
 ---
 ---Control how OSC (Operating System Command) sequences are handled.
 ---`kind` chooses default handlers; `handlers` overrides or extends them.

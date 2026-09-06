@@ -44,10 +44,13 @@ return {
         -- input_word_completion = true,
 
         -- to add ANSI escape code support (requires baleia.nvim):
-        -- ansi_color = { kind = "render" },
+        -- `baleia_setup = {}` uses baleia's defaults, or pass a table to customize:
+        -- ansi_color = { kind = "render", baleia_setup = {} },
 
         -- to enable OSC sequence handling (titles, hyperlinks, notifications):
-        -- ansi_osc = { kind = "render" },
+        -- built-in handlers for OSC 0/1/2/8/9 are injected when `kind` is "render";
+        -- `handlers = {}` uses them, or pass a table to override:
+        -- ansi_osc = { kind = "render", handlers = {} },
 
         -- to make `:Compile` replace special characters (e.g. `%`) in
         -- the command (and behave more like `:!`), add:
@@ -94,8 +97,8 @@ vim.g.compile_mode = {
     -- :h compile-mode.ansi_color
     ansi_color = {
         kind = "filter",
-        -- Options to pass to baleia.setup() when kind is "render".
-        -- Set to true for defaults, or a table of options.
+        -- Baleia options to pass to baleia.setup() when kind is "render".
+        -- Use `{}` for baleia's defaults, or a table of baleia options.
         -- :h compile-mode.baleia_setup
         baleia_setup = false,
     },
@@ -172,35 +175,12 @@ vim.g.compile_mode = {
     -- :h compile-mode.use_pseudo_terminal
     use_pseudo_terminal = false,
     -- Control how OSC sequences are handled (hyperlinks, titles, etc.)
+    -- The default `handlers` is empty; when `kind` is `"render"`, built-in
+    -- handlers for OSC 0/1/2/8/9 are injected automatically.
     -- :h compile-mode.ansi_osc
     ansi_osc = {
         kind = "render",
-        handlers = {
-            [0] = function(ctx)
-                vim.opt.titlestring = ctx.data
-                vim.opt.iconstring = ctx.data
-                return ""
-            end,
-            [1] = function(ctx)
-                vim.opt.iconstring = ctx.data
-                return ""
-            end,
-            [2] = function(ctx)
-                vim.opt.titlestring = ctx.data
-                return ""
-            end,
-            [8] = function(ctx)
-                local uri = ctx.data:match(";%s*(.*)")
-                if uri and uri ~= "" then
-                    return "", { link_open = { uri = uri } }
-                end
-                return "", { link_close = true }
-            end,
-            [9] = function(ctx)
-                vim.notify(ctx.data, vim.log.levels.INFO)
-                return ""
-            end,
-        },
+        handlers = {},
     }
 }
 ```

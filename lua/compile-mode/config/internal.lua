@@ -59,6 +59,7 @@ local default_config = {
 	---@type CompileModeAnsiOsc
 	ansi_osc = {
 		kind = "render",
+		handlers = {},
 	},
 }
 
